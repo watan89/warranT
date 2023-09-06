@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+// Import OpenZeppelin's ERC721 and Ownable contracts for NFT functionality and ownership control
+
+contract WarranTversion1 is ERC721Enumerable, Ownable {
+    string private _baseTokenURI;
+    
+    // Struct to store warranty information for each NFT
+    struct Warranty {
+        uint256 purchaseDate;
+        string terms;
+        uint256 warrantyExpirationDate;
+    }
+
+    // Mapping from token ID to Warranty
+    mapping(uint256 => Warranty) private warranties;
+
+    constructor(string memory name, string memory symbol, string memory baseTokenURI) ERC721(name, symbol) {
+        _baseTokenURI = baseTokenURI;
+    }
+
+    // Mint a new NFT with warranty information
+    function mintWithWarranty(address to, uint256 tokenId, string memory tokenURI, string memory terms, uint256 warrantyDurationInDays) public onlyOwner {
+        require(!_exists(tokenId), "Token ID already minted");
+        _mint(to, tokenId);
+        _setTokenURI(tokenId, tokenURI);
+
+        uint256 purchaseDate = block.timestamp; // Current block timestamp is considered the purchase date
+        uint256 warrantyExpirationDate = purchaseDate + (warrantyDurationInDays * 1 days); // Calculate warranty expiration date
+
+        warranties[tokenId] = Warranty({
+            purchaseDate: purchaseDate,
+            terms: terms,
+            warrantyExpirationDate: warrantyExpirationDate
+        });
+    }
+
+    // Retrieve warranty information for a given NFT token ID
+    function getWarranty(uint256 tokenId) public view returns (uint256 purchaseDate, string memory terms, uint256 warrantyExpirationDate) {
+        require(_exists(tokenId), "Token ID does not exist");
+        Warranty storage warranty = warranties[tokenId];
+        return (warranty.purchaseDate, warranty.terms, warranty.warrantyExpirationDate);
+    }
+
+    // Override _baseURI() to provide the base token URI
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
+    }
+}
